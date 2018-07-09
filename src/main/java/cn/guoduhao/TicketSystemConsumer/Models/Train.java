@@ -8,7 +8,7 @@ public class Train {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     public Integer id;
-    public String trainId;//车次
+    public String trainNo;//车次
     public String departStation;//始发站
     public String destinationStation;//到达站
     public String departTime;//出发时间

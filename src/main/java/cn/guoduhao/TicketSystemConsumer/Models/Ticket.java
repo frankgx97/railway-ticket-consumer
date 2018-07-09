@@ -16,8 +16,11 @@ public class Ticket {
     public String destinationStation;//终点
     public Integer expense;//车费
     public Integer status;//车票状态
-    public String trainId;//车次
+    public Integer trainId;//火车id
+    public String trainNo;//车次
     public String seat;//座位
+    public String stations;//途经车站
+    public String version;//乐观锁
 
     public Ticket(String name){
         this.name = name;
