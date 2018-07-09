@@ -1,5 +1,6 @@
 /target/
 !.mvn/wrapper/maven-wrapper.jar
+publish_testing
 
 ### STS ###
 .apt_generated
