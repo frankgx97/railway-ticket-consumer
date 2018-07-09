@@ -1,3 +1,0 @@
-[submodule "src/main/java/cn/guoduhao/TicketSystemConsumer/Models/ConsumerModels"]
-	path = src/main/java/cn/guoduhao/TicketSystemConsumer/Models/ConsumerModels
-	url = https://git.guoduhao.cn/bigdata/TicketSystemConsumerModels.git
