@@ -14,4 +14,5 @@ public class Train {
     public String departTime;//出发时间
     public Integer seatsTotal;//总座位
     public Integer seatsSold;//已售出座位
+    public Integer expense;//票价
 }
