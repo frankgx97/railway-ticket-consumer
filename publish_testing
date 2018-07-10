@@ -1,0 +1,6 @@
+#!/bin/zsh
+git co testing
+git merge dev
+git push origin testing
+git co dev
+curl -u frank:11d68152aa840098e8ff578a8dba0a4e62 "https://jenkins-ci.guoduhao.cn/job/TicketSystemConsumer/build?token=token"
