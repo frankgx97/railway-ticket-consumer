@@ -51,11 +51,11 @@ public class OrderService {
         }
     }
 
-    public void writeRedis(String ticketId, String json){
+    public void writeRedis(String ticketId, String userId, String json){
         if (json.equals("")){
             this.logger.error("GOT_NULL_MESSAGE.");
         }
-        this.stringRedisTemplate.opsForValue().set(ticketId, json);
+        this.stringRedisTemplate.opsForValue().set(ticketId+"-"+userId, json);
     }
 
     @JmsListener(destination = "orders")
@@ -70,7 +70,7 @@ public class OrderService {
                 String ticketId = ticket.id;
                 //write redis
                 String ticketJson = this.updateTicketStatus(ticket);
-                this.writeRedis(ticketId, ticketJson);
+                this.writeRedis(ticketId, ticket.userId, ticketJson);
             }
         }catch(JsonProcessingException jsonProcessingException) {
             this.logger.error("jsonProcessingException");
