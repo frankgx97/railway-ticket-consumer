@@ -62,7 +62,7 @@ public class OrderService {
         if (json.equals("")){
             this.logger.error("GOT_NULL_MESSAGE.");
         }
-        String key = ticketId+"--"+userId+"--"+trainId;
+        String key = ticketId+"--"+userId+"--trainId"+trainId;
         try{
             this.stringRedisTemplate.opsForValue().set(key, json);
         }catch(Exception e){
@@ -105,8 +105,8 @@ public class OrderService {
         }
     }
 
-    public List<Ticket> findTicketFromTrainId(String trainId){
-        Set<String> keys = this.stringRedisTemplate.keys("*");
+    public List<Ticket> findTicketFromTrainId(Integer trainId){
+        Set<String> keys = this.stringRedisTemplate.keys("*trainId"+Integer.toString(trainId));
         List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
 
         List<Ticket> ticketList = new ArrayList<>();
@@ -120,7 +120,6 @@ public class OrderService {
             }
         }
         return ticketList;
-
     }
     /*
     private class RedisKey{
