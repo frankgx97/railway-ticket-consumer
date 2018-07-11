@@ -1,8 +1,11 @@
 package cn.guoduhao.TicketSystemConsumer.Services;
 
 import cn.guoduhao.TicketSystemConsumer.Repositories.TrainRepository;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.hibernate.service.spi.InjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -14,7 +17,11 @@ import cn.guoduhao.TicketSystemConsumer.Models.Ticket;
 import cn.guoduhao.TicketSystemConsumer.Models.Train;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,11 +58,16 @@ public class OrderService {
         }
     }
 
-    public void writeRedis(String ticketId, String userId, String json){
+    public void writeRedis(String ticketId, String userId, Integer trainId,String json){
         if (json.equals("")){
             this.logger.error("GOT_NULL_MESSAGE.");
         }
-        this.stringRedisTemplate.opsForValue().set(ticketId+"-"+userId, json);
+        String key = ticketId+"--"+userId+"--"+trainId;
+        try{
+            this.stringRedisTemplate.opsForValue().set(key, json);
+        }catch(Exception e){
+            this.logger.error(e.getMessage());
+        }
     }
 
     @JmsListener(destination = "orders")
@@ -70,7 +82,7 @@ public class OrderService {
                 String ticketId = ticket.id;
                 //write redis
                 String ticketJson = this.updateTicketStatus(ticket);
-                this.writeRedis(ticketId, ticket.userId, ticketJson);
+                this.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
             }
         }catch(JsonProcessingException jsonProcessingException) {
             this.logger.error("jsonProcessingException");
@@ -92,4 +104,36 @@ public class OrderService {
             return "";
         }
     }
+
+    public List<Ticket> findTicketFromTrainId(String trainId){
+        Set<String> keys = this.stringRedisTemplate.keys("*");
+        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+
+        List<Ticket> ticketList = new ArrayList<>();
+        for(int i=0;i<jsonList.size();i++){
+            ObjectMapper mapper = new ObjectMapper();
+            try{
+                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
+                ticketList.add(ticket);
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+        }
+        return ticketList;
+
+    }
+    /*
+    private class RedisKey{
+        String userId;
+        String ticketId;
+        Integer trainId;
+
+        public RedisKey(String userId, String ticketId, Integer trainId){
+            this.userId = userId;
+            this.ticketId = ticketId;
+            this.trainId = trainId;
+        }
+    }
+    */
 }
+
