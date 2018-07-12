@@ -17,6 +17,12 @@ public interface TicketService {
 
     Integer buyTicket_BJ_SH(Ticket newTicket);
 
+    String modifyStations(String departStation,String destinationStation,String stations);
+
+    String createStations_BJ_SH(String departStation,String destinationaStation);
+
+    //void receiveAndModifyStations(String message);
+
 
 
 

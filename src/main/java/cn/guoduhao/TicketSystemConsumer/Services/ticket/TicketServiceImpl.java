@@ -4,14 +4,21 @@ import cn.guoduhao.TicketSystemConsumer.Models.Ticket;
 import cn.guoduhao.TicketSystemConsumer.Models.Train;
 import cn.guoduhao.TicketSystemConsumer.Repositories.TicketRepository;
 import cn.guoduhao.TicketSystemConsumer.Repositories.TrainRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import cn.guoduhao.TicketSystemConsumer.Services.OrderService;
+import java.util.*;
 
 @Service
 public class TicketServiceImpl implements TicketService{
@@ -21,16 +28,55 @@ public class TicketServiceImpl implements TicketService{
 
     private final TrainRepository trainRepository;
 
+    //private final OrderService orderService;
+
+    private Logger logger;
+
     @Autowired //无需实例化，交给Spring管理
-    public TicketServiceImpl(TicketRepository ITicketRepository, TrainRepository ITrainRepository){
+    public TicketServiceImpl(TicketRepository ITicketRepository, TrainRepository ITrainRepository ){
         this.ticketRepository = ITicketRepository;
         this.trainRepository = ITrainRepository;
+//        this.orderService = IOrderService;
     }
 
     @Override
     public Optional<Ticket> getTicketByUserId(String userId){
         return this.ticketRepository.findOneByUserId(userId);
     }
+
+//    @JmsListener(destination = "orders")
+//    public void receiveAndModifyStations(String message) {
+//        //这里的返回值必须为void，否则需要Message存在replyto
+//        //从ActiveMQ接收消息
+//        this.logger.info("Received message: " + message);
+//        ObjectMapper mapper = new ObjectMapper();
+//        try{
+//            Ticket ticket = mapper.readValue(message, Ticket.class);
+//            if (orderService.updateTrainDb(ticket.trainId) == 0){
+//                String ticketId = ticket.id;
+//
+//                //Coding by TianXinyao at July/12th/2018
+//
+//                String receivedStations = createStations_BJ_SH("北京","上海");
+//                String receivedDepartStation = ticket.departStation;
+//                String receivedDestinationStation = ticket.destinationStation;
+//                String modifiedStation = modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
+//                ticket.stations = modifiedStation;
+//
+//                //End Coding...
+//
+//                //write redis
+//                String ticketJson = orderService.updateTicketStatus(ticket);
+//                orderService.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
+//            }
+//        }catch(JsonProcessingException jsonProcessingException) {
+//            this.logger.error("jsonProcessingException");
+//            this.logger.error(jsonProcessingException.getMessage());
+//        }catch(IOException ioException) {
+//            this.logger.error("IOException");
+//            this.logger.error(ioException.getMessage());
+//        }
+//    }
 
     @Override
     public Integer buyTicket_BJ_SH(Ticket newTicket){
@@ -146,7 +192,7 @@ public class TicketServiceImpl implements TicketService{
     //输出: stations
     //ToDo 分站购票中，如果有多条火车线路，需要在这里修改StringToStationNum_BJ_SH成别的对应关系
     //或者做个switch，多加一个参数，让函数选择哪条线路的车票对应关系
-    private String modifyStations(String departStation,String destinationStation,String stations){
+    public String modifyStations(String departStation,String destinationStation,String stations){
         Integer departNum = StringToStationNum_BJ_SH(departStation);
         Integer destinationNum = StringToStationNum_BJ_SH(destinationStation);
         return modifyString(departNum,destinationNum,stations);
@@ -183,7 +229,7 @@ public class TicketServiceImpl implements TicketService{
     }
 
     //生成一个北京-上海的"0000000000"字段
-    private String createStations_BJ_SH(String departStation,String destinationaStation){
+    public String createStations_BJ_SH(String departStation,String destinationaStation){
         Integer departNum = StringToStationNum_BJ_SH(departStation);
         Integer destinationNum = StringToStationNum_BJ_SH(destinationaStation);
         return createStations(departNum,destinationNum);

@@ -1,6 +1,7 @@
 package cn.guoduhao.TicketSystemConsumer.Services;
 
 import cn.guoduhao.TicketSystemConsumer.Repositories.TrainRepository;
+import cn.guoduhao.TicketSystemConsumer.Services.ticket.TicketService;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,6 +35,9 @@ public class OrderService {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private TicketService ticketService;
 
     private Logger logger;
 
@@ -80,6 +84,13 @@ public class OrderService {
             Ticket ticket = mapper.readValue(message, Ticket.class);
             if (updateTrainDb(ticket.trainId) == 0){
                 String ticketId = ticket.id;
+
+                String receivedStations = ticketService.createStations_BJ_SH("北京","上海");
+                String receivedDepartStation = ticket.departStation;
+                String receivedDestinationStation = ticket.destinationStation;
+                String modifiedStation = ticketService.modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
+                ticket.stations = modifiedStation;
+
                 //write redis
                 String ticketJson = this.updateTicketStatus(ticket);
                 this.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
@@ -93,7 +104,7 @@ public class OrderService {
         }
     }
 
-    private String updateTicketStatus(Ticket ticket){
+    public String updateTicketStatus(Ticket ticket){
         ObjectMapper mapper = new ObjectMapper();
         try{
             ticket.status = 1;
