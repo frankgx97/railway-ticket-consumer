@@ -23,6 +23,8 @@ public interface TicketService {
 
     //void receiveAndModifyStations(String message);
 
+    String mapToTrainNo_BJ_SH(String departStation,String destinationStation);
+
 
 
 

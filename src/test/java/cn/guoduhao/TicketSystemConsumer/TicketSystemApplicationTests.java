@@ -25,46 +25,46 @@ public class TicketSystemApplicationTests {
 	@Autowired
     TrainRepository trainRepository;
 
-	@Test
-	@Bean
-	//基础测试：Ticket表连接测试
-	public void TicketRepoBasicTest(){
-		Ticket ticket = new Ticket();
-		ticket.name = "张三";
-		ticket.orderId = "G2SC02SE23DA20180709TI135500";
-		ticket.departTime = "2018-07-10-13:55:00";
-		ticket.departStation = "北京";
-		ticket.destinationStation = "武汉";
-		ticket.expense = 355;
-		ticket.status = 1;
-		ticket.trainNo = "G2";
-		ticket.seat = "SC23SE23"; // Section 02 Seat 23 第二节车厢 23号座位
-		ticket.stations = "11111111111111";
-		ticket.version = "0";
-
-		ticketRepository.save(ticket);
-	}
-
-    @Test
-    @Bean
-    //add测试
-    public void TicketRepoAdd(){
-        Ticket ticket = new Ticket();
-        ticket.name = "李志伟";
-        ticket.orderId = "G1SC02SE23DA20180711TI135500";
-        ticket.departTime = "2018-07-11-13:55:00";
-        ticket.departStation = "北京";
-        ticket.destinationStation = "上海";
-        ticket.expense = 355;
-        ticket.status = 1;
-        ticket.userId ="3721";
-        ticket.trainNo = "G2";
-        ticket.seat = "SC23SE23"; // Section 02 Seat 23 第二节车厢 23号座位
-        ticket.stations = "1111000000";
-        ticket.version = "0";
-
-        ticketRepository.save(ticket);
-    }
+//	@Test
+//	@Bean
+//	//基础测试：Ticket表连接测试
+//	public void TicketRepoBasicTest(){
+//		Ticket ticket = new Ticket();
+//		ticket.name = "张三";
+//		ticket.orderId = "G2SC02SE23DA20180709TI135500";
+//		ticket.departTime = "2018-07-10-13:55:00";
+//		ticket.departStation = "北京";
+//		ticket.destinationStation = "武汉";
+//		ticket.expense = 355;
+//		ticket.status = 1;
+//		ticket.trainNo = "G2";
+//		ticket.seat = "SC23SE23"; // Section 02 Seat 23 第二节车厢 23号座位
+//		ticket.stations = "11111111111111";
+//		ticket.version = "0";
+//
+//		ticketRepository.save(ticket);
+//	}
+//
+//    @Test
+//    @Bean
+//    //add测试
+//    public void TicketRepoAdd(){
+//        Ticket ticket = new Ticket();
+//        ticket.name = "李志伟";
+//        ticket.orderId = "G1SC02SE23DA20180711TI135500";
+//        ticket.departTime = "2018-07-11-13:55:00";
+//        ticket.departStation = "北京";
+//        ticket.destinationStation = "上海";
+//        ticket.expense = 355;
+//        ticket.status = 1;
+//        ticket.userId ="3721";
+//        ticket.trainNo = "G2";
+//        ticket.seat = "SC23SE23"; // Section 02 Seat 23 第二节车厢 23号座位
+//        ticket.stations = "1111000000";
+//        ticket.version = "0";
+//
+//        ticketRepository.save(ticket);
+//    }
 
 //    @Test
 //    @Bean

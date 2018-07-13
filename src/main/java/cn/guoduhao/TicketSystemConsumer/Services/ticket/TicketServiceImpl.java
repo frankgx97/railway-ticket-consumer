@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Service;
 
+import cn.guoduhao.TicketSystemConsumer.Services.OrderService;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,15 +30,15 @@ public class TicketServiceImpl implements TicketService{
 
     private final TrainRepository trainRepository;
 
-    //private final OrderService orderService;
+    private final OrderService orderService;
 
     private Logger logger;
 
     @Autowired //无需实例化，交给Spring管理
-    public TicketServiceImpl(TicketRepository ITicketRepository, TrainRepository ITrainRepository ){
+    public TicketServiceImpl(TicketRepository ITicketRepository, TrainRepository ITrainRepository , OrderService IOrderService){
         this.ticketRepository = ITicketRepository;
         this.trainRepository = ITrainRepository;
-//        this.orderService = IOrderService;
+        this.orderService = IOrderService;
     }
 
     @Override
@@ -88,17 +90,19 @@ public class TicketServiceImpl implements TicketService{
         else{//否则，从全程票中查看是否有空闲票
             //ToDo 需要更改 进入NoSQL中查询含有顾客上车和下车站的trainNo, 再根据TrainNo检索
             List<Train> trains = //注意这里是 trainRepo 不是 ticketRepo
-                trainRepository.findByDepartStationAndDestinationStation("北京","上海");
+                trainRepository.findByDepartStationAndDestinationStationAndDepartTime("北京","上海",newTicket.departTime);
             Integer remanentTickets = trains.get(0).seatsTotal - trains.get(0).seatsSold;
             if(remanentTickets > 0){//若全程票中有空闲票
                 String startStation = newTicket.departStation;
-                String arriveStation =newTicket.destinationStation;
+                String arriveStation = newTicket.destinationStation;
                 //创建新的stations字段
                 String defaultStation = createStations_BJ_SH("北京","上海");
                 String newStations = modifyStations(startStation,arriveStation,defaultStation);
                 trains.get(0).seatsSold += 1;//全程票售出一张(全程半程均可)
                 newTicket.stations = newStations;
-                ticketRepository.save(newTicket);//更新新买的票至Ticket表
+                //ticketRepository.save(newTicket);//更新新买的票至Ticket表
+                String ticketJson = orderService.updateTicketStatus(newTicket);
+                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
                 trainRepository.save(trains.get(0));//更新Train表
                 return 1;//返回成功
             }
@@ -126,24 +130,32 @@ public class TicketServiceImpl implements TicketService{
                 return false; // 则返回false 表示修改失败 购票失败 剩余的票中已经没有满足需求的分段票了
             }
             else{
-                //同时更新新票和已经购入票的stations字段
-                newTicket.stations = newStations;
-                targetTickets.get(0).stations = newStations;
+                //同时更新相同座位新票和已经购入票的stations字段
+                String seat = targetTickets.get(0).seat ;
+                List<Ticket> modifiedtargetTickets = orderService.findTicketFromSeat(seat);
+                for( int i = 0 ; i < modifiedtargetTickets.size() ; i++ ){
+                    Ticket curTicket = modifiedtargetTickets.get(i);
+                    curTicket.stations = newStations;
+                    //此处代码粘贴自Services.OrderService中的ticket转redis函数
+                    String ticketJson = orderService.updateTicketStatus(curTicket);
+                    orderService.writeRedis(curTicket.id, curTicket.userId, curTicket.trainId, ticketJson);
+
+                }
                 //ToDo:改
                 //当选购票后，票的stations字段全部变为"1" 说明已经凑出了一张全程票
                 if (newStations.equals(modifyStations("北京","上海",""))){
                     //找到原来半程票对应的trainNo
-                    Optional<Train> train = trainRepository.findOneByTrainNo(targetTickets.get(0).trainNo);
-                    if(train.isPresent()){
-                        train.get().seatsSold += 1; //trainNo对应的seatsSold + 1
-                        trainRepository.save(train.get()); //更新Train表，改变剩余票数
-                    }
+//                    Optional<Train> train = trainRepository.findOneByTrainNo(targetTickets.get(0).trainNo);
+//                    if(train.isPresent()){
+//                        train.get().seatsSold += 1; //trainNo对应的seatsSold + 1
+//                        trainRepository.save(train.get()); //更新Train表，改变剩余票数
+//                    }
                     return true; //表示购票成功
                 }
-
-                //将这两张票在数据库中更新
-                ticketRepository.save(newTicket);
-                ticketRepository.save(targetTickets.get(0));
+//
+//                //将这两张票在数据库中更新
+//                ticketRepository.save(newTicket);
+//                ticketRepository.save(targetTickets.get(0));
                 return true; //返回 true 购票成功 表示此次购票可以在剩余的票中解决
             }
         }
@@ -154,9 +166,9 @@ public class TicketServiceImpl implements TicketService{
     @Override
     public List<Ticket> searchRemanentTicket_BJ_SH(String startStation, String arriveStation){
         List<Ticket> targetTickets = new ArrayList<>();
+        String trainNo = mapToTrainNo_BJ_SH(startStation,arriveStation);
         //ToDo 此处推广时需要修改
-        List<Ticket> tickets =
-                ticketRepository.findByTrainNo("G1");
+        List<Ticket> tickets = orderService.findTicketFromTrainNo(trainNo);
         //ToDo 此处推广时需要修改
         Integer totalStations = StringToStationNum_BJ_SH("上海"); //总站数
         Integer startNum = StringToStationNum_BJ_SH(startStation); // 乘客上车站
@@ -181,6 +193,22 @@ public class TicketServiceImpl implements TicketService{
         }
         //返回符合情况的List
         return targetTickets;
+    }
+
+    @Override
+    //若能够映射到BJ_SH的列车 则返回"G1";否则返回""
+    public String mapToTrainNo_BJ_SH(String departStation,String destinationStation){
+        //调入StringToStationNum_BJ_SH的映射函数
+        //判定其值是否为-1 若是则证明相应站点不在映射内
+        Integer departNum = StringToStationNum_BJ_SH(departStation);
+        Integer destinationNum = StringToStationNum_BJ_SH(destinationStation);
+        if(departNum == -1 || destinationNum == -1){
+            return "";
+        }
+        else{
+            return "G1";
+        }
+
     }
 
     @Override

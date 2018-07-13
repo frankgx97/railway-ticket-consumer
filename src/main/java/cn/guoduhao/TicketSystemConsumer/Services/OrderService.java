@@ -52,9 +52,9 @@ public class OrderService {
         Integer seatsSold = train.get().seatsSold;
         if(seatsSold <= seatsTotal){
             //TODO 判断抢票是否成功
-            train.get().seatsSold = seatsSold + 1;
-            trainRepository.save(train.get());
-            this.logger.info("Train update success.");
+            //train.get().seatsSold = seatsSold + 1;
+            //trainRepository.save(train.get());
+            //this.logger.info("Train update success.");
             return 0;
         }else{
             this.logger.info("Train update failed.");
@@ -85,11 +85,14 @@ public class OrderService {
             if (updateTrainDb(ticket.trainId) == 0){
                 String ticketId = ticket.id;
 
-                String receivedStations = ticketService.createStations_BJ_SH("北京","上海");
-                String receivedDepartStation = ticket.departStation;
-                String receivedDestinationStation = ticket.destinationStation;
-                String modifiedStation = ticketService.modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
-                ticket.stations = modifiedStation;
+//                //创建标准字段"0000000000"
+//                String receivedStations = ticketService.createStations_BJ_SH("北京","上海");
+//                String receivedDepartStation = ticket.departStation;
+//                String receivedDestinationStation = ticket.destinationStation;
+//                //修改成购票状态相应的01串stations
+//                String modifiedStation = ticketService.modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
+//                ticket.stations = modifiedStation;
+                ticketService.buyTicket_BJ_SH(ticket);
 
                 //write redis
                 String ticketJson = this.updateTicketStatus(ticket);
@@ -132,6 +135,41 @@ public class OrderService {
         }
         return ticketList;
     }
+
+    public List<Ticket> findTicketFromTrainNo(String TrainNo){
+        Set<String> keys = this.stringRedisTemplate.keys("*trainNo"+TrainNo);
+        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+
+        List<Ticket> ticketList = new ArrayList<>();
+        for(int i=0;i<jsonList.size();i++){
+            ObjectMapper mapper = new ObjectMapper();
+            try{
+                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
+                ticketList.add(ticket);
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+        }
+        return ticketList;
+    }
+
+    public List<Ticket> findTicketFromSeat(String seat){
+        Set<String> keys = this.stringRedisTemplate.keys("*seat"+seat);
+        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+
+        List<Ticket> ticketList = new ArrayList<>();
+        for(int i=0;i<jsonList.size();i++){
+            ObjectMapper mapper = new ObjectMapper();
+            try{
+                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
+                ticketList.add(ticket);
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+        }
+        return ticketList;
+    }
+
     /*
     private class RedisKey{
         String userId;
