@@ -24,6 +24,7 @@ public class Ticket {
     public String seat;//座位
     public String stations;//途经车站
     public String version;//乐观锁
+    public Long timestamp;//时间戳
 
     public Ticket(String name){
         this.name = name;
