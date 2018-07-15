@@ -3,4 +3,6 @@ services:
     ticketsystemconsumer:
         container_name: "ticketsystemconsumer"
         image: "registry.guoduhao.cn:9000/ticketsystemconsumer"
+        deploy:
+          replicas: 2
         restart: always
