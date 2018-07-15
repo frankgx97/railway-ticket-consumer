@@ -51,6 +51,7 @@ public class OrderService {
         Integer seatsTotal = train.get().seatsTotal;
         Integer seatsSold = train.get().seatsSold;
         if(seatsSold <= seatsTotal){
+            this.logger.info("Updating train.");
             //TODO 判断抢票是否成功
             //train.get().seatsSold = seatsSold + 1;
             //trainRepository.save(train.get());
