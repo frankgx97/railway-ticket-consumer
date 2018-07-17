@@ -95,7 +95,7 @@ public class TicketServiceImpl implements TicketService{
                     //train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
                     //trainRepository.save(train.get());//更新Train表
                     try{
-                        trainRepository.updateSoldSeats(train.get().id, train.get().seatsSold+1, train.get().version);
+                        trainRepository.updateSoldSeats(train.get().id, train.get().seatsSold+1, train.get().version, train.get().version+1);
                         String ticketJson = orderService.updateTicketStatus(newTicket);
                         orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
                     }catch(Exception e){

@@ -17,6 +17,6 @@ public interface TrainRepository extends JpaRepository<Train, Long> {
     List<Train> findByDepartStationAndDestinationStation(String departStation, String destinationStation);
     @Transactional
     @Modifying
-    @Query("update Train t set t.seatsSold = ?2 where t.id = ?1 and t.version = ?3")
-    void updateSoldSeats(Integer trainId, Integer seatsSold, Long version);
+    @Query("update Train t set t.seatsSold = ?2, t.version = ?4 where t.id = ?1 and t.version = ?3")
+    void updateSoldSeats(Integer trainId, Integer seatsSold, Long version, Long versionNew);
 }
