@@ -15,4 +15,6 @@ public class Train {
     public Integer seatsTotal;//总座位
     public Integer seatsSold;//已售出座位
     public Integer expense;//票价
+    @Version
+    public Long version;//乐观锁
 }

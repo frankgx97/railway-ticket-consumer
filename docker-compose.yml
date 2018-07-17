@@ -1,0 +1,10 @@
+version: '3'
+services:
+    ticketsystemconsumer1:
+        container_name: "ticketsystemconsumer1"
+        image: "registry.guoduhao.cn:9000/ticketsystemconsumer"
+        restart: always
+    ticketsystemconsumer2:
+        container_name: "ticketsystemconsumer2"
+        image: "registry.guoduhao.cn:9000/ticketsystemconsumer"
+        restart: always
