@@ -100,11 +100,11 @@ public class TicketServiceImpl implements TicketService{
                         orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
                     }catch(Exception e){
                         this.logger.error(e.getMessage());
-                        this.logger.info("Seat update failed.");
+                        this.logger.info("Seat update failed.(Optimistic lock detected)");
                         return 2;
                     }
                 }else{
-                    this.logger.info("Seat update failed.");
+                    this.logger.info("No seats left(before updating.)");
                     return 2;
                 }
                 this.logger.info("Seat successfully updated.");
