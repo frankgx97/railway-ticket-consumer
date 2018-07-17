@@ -11,8 +11,8 @@ public interface TicketService {
 //
 //    String modifiedTicketStation(Ticket ticket);
 //
-//    List<Ticket> searchRemanentTicket_BJ_SH(String startStation, String arriveStation);
-//
+    List<Ticket> searchRemanentTicket(String startStation, String arriveStation , Integer trainId);
+
 //    boolean buyRemanentTicket_BJ_SH(Ticket newTicket);
 //
 //    Integer buyTicket_BJ_SH(Ticket newTicket);

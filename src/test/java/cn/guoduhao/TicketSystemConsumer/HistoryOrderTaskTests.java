@@ -3,6 +3,7 @@ package cn.guoduhao.TicketSystemConsumer;
 import cn.guoduhao.TicketSystemConsumer.Models.Ticket;
 import cn.guoduhao.TicketSystemConsumer.Repositories.MongoDbRepositories.TicketMongoRepository;
 import cn.guoduhao.TicketSystemConsumer.Services.OrderService;
+import cn.guoduhao.TicketSystemConsumer.Services.ticket.TicketServiceImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class HistoryOrderTaskTests {
     @Autowired
     OrderService orderService;
 
+    @Autowired
+    TicketServiceImpl ticketServiceImpl;
+
     @Test
     public void testHistoryOrderTask(){
         HistoryOrderTask historyOrderTask = new HistoryOrderTask();
@@ -43,5 +47,12 @@ public class HistoryOrderTaskTests {
         List<Ticket>tickets = orderService.findTicketFromTrainId(110);
         System.out.println(tickets.size());
         //System.out.println(tickets.get(0).stations);
+    }
+
+    @Test
+    @Bean
+    public void testBuyRemanentTicketsTask(){
+        //System.out.println(tickets.get(0).stations);
+        //ticketServiceImpl.buyRemanentTicket("苏州","上海","G1",110);
     }
 }

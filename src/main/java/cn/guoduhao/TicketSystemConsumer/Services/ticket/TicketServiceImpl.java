@@ -140,58 +140,164 @@ public class TicketServiceImpl implements TicketService{
 //        }
 //    }
 //
-//    //ToDo JB_SH推广时需要修改
-//    @Override
-//    public boolean buyRemanentTicket_BJ_SH(Ticket newTicket){
+//    //ToDo:用于测试的函数
+//    public boolean buyRemanentTicket(String startStation, String arriveStation,String trainNo,Integer trainId){
 //        //读出乘客的起始站和目的站
-//        String startStation = newTicket.departStation;
-//        String arriveStation = newTicket.destinationStation;
-//        //ToDo JB_SH推广时需要修改
 //        //在Ticket表中搜索相应段全部为0的票务信息
-//        List<Ticket> targetTickets = searchRemanentTicket_BJ_SH(startStation,arriveStation);
+//        List<Ticket> targetTickets = searchRemanentTicket(startStation,arriveStation,trainId);
+//
+//        //------------------------//
+//        for(int temp = 0; temp < targetTickets.size();temp++){
+//            System.out.println("========1========");
+//            System.out.println(targetTickets.get(temp).trainNo);
+//            System.out.println(targetTickets.get(temp).trainId);
+//            System.out.println(targetTickets.get(temp).departStation);
+//            System.out.println(targetTickets.get(temp).destinationStation);
+//            System.out.println(targetTickets.get(temp).stations);
+//            System.out.println(targetTickets.get(temp).seat);
+//            System.out.println("=================");
+//        }
+//        //------------------------//
+//
 //        //搜索符合条件的剩余票
 //        if(!targetTickets.isEmpty()){
 //            String targetStations = targetTickets.get(0).stations;
 //            //新建String stations
-//            String newStations = modifyStations(startStation,arriveStation,targetStations);
+//            String newStations = modifyStations(startStation,arriveStation,trainNo);
 //            if (newStations.equals(targetStations)){ //若stations未发生改动(表示没有修改成功)
 //                return false; // 则返回false 表示修改失败 购票失败 剩余的票中已经没有满足需求的分段票了
 //            }
 //            else{
 //                //同时更新相同座位新票和已经购入票的stations字段
+//                //更新newTicket
 //                String seat = targetTickets.get(0).seat ;
-//                List<Ticket> modifiedtargetTickets = orderService.findTicketFromSeat(seat);
+//
+//
+//                List<Ticket> modifiedtargetTickets = orderService.getAllTicketsBySeatAndTrainIdFromredis(seat,trainId);//读出相同seat的Ticket
+//
+//
+//                //------------------------//
+//                for(int temp = 0; temp < modifiedtargetTickets.size();temp++){
+//                    System.out.println("========2========");
+//                    System.out.println(modifiedtargetTickets.get(temp).trainNo);
+//                    System.out.println(modifiedtargetTickets.get(temp).trainId);
+//                    System.out.println(modifiedtargetTickets.get(temp).departStation);
+//                    System.out.println(modifiedtargetTickets.get(temp).destinationStation);
+//                    System.out.println(modifiedtargetTickets.get(temp).stations);
+//                    System.out.println(modifiedtargetTickets.get(temp).seat);
+//                    System.out.println("=================");
+//                }
+//                //------------------------//
+//
+//                //分别更新相同Seat的Ticket
 //                for( int i = 0 ; i < modifiedtargetTickets.size() ; i++ ){
 //                    Ticket curTicket = modifiedtargetTickets.get(i);
 //                    curTicket.stations = newStations;
+//                    curTicket.seat = seat;
 //                    //此处代码粘贴自Services.OrderService中的ticket转redis函数
-//                    String ticketJson = orderService.updateTicketStatus(curTicket);
-//                    orderService.writeRedis(curTicket.id, curTicket.userId, curTicket.trainId, ticketJson);
-//
+//                    String ticketJsonCur = orderService.updateTicketStatus(curTicket);
+//                    orderService.writeRedis(curTicket.id, curTicket.userId, curTicket.trainId, ticketJsonCur);
 //                }
-//                //ToDo:改
+//
+//                //------------------------//
+//                for(int temp = 0; temp <modifiedtargetTickets.size();temp++){
+//                    System.out.println("========3========");
+//                    System.out.println(modifiedtargetTickets.get(temp).trainNo);
+//                    System.out.println(modifiedtargetTickets.get(temp).trainId);
+//                    System.out.println(modifiedtargetTickets.get(temp).departStation);
+//                    System.out.println(modifiedtargetTickets.get(temp).destinationStation);
+//                    System.out.println(modifiedtargetTickets.get(temp).stations);
+//                    System.out.println(modifiedtargetTickets.get(temp).seat);
+//                    System.out.println("=================");
+//                }
+//                //------------------------//
 //                //当选购票后，票的stations字段全部变为"1" 说明已经凑出了一张全程票
-//                if (newStations.equals(modifyStations("北京","上海",""))){
+//                if (newStations.equals(
+//                        modifyStations(orderService.findOneByTrainNo(trainNo).stations.get(0),
+//                                orderService.findOneByTrainNo(trainNo).stations.get(orderService.findOneByTrainNo(trainNo).stations.size()-1),
+//                                trainNo))){
 //                    //找到原来半程票对应的trainNo
-////                    Optional<Train> train = trainRepository.findOneByTrainNo(targetTickets.get(0).trainNo);
-////                    if(train.isPresent()){
-////                        train.get().seatsSold += 1; //trainNo对应的seatsSold + 1
-////                        trainRepository.save(train.get()); //更新Train表，改变剩余票数
-////                    }
+//    //                    Optional<Train> train = trainRepository.findOneByTrainNo(targetTickets.get(0).trainNo);
+//    //                    if(train.isPresent()){
+//    //                        train.get().seatsSold += 1; //trainNo对应的seatsSold + 1
+//    //                        trainRepository.save(train.get()); //更新Train表，改变剩余票数
+//    //                    }
 //                    return true; //表示购票成功
 //                }
-////
-////                //将这两张票在数据库中更新
-////                ticketRepository.save(newTicket);
-////                ticketRepository.save(targetTickets.get(0));
+//    //
+//    //                //将这两张票在数据库中更新
+//    //                ticketRepository.save(newTicket);
+//    //                ticketRepository.save(targetTickets.get(0));
 //                return true; //返回 true 购票成功 表示此次购票可以在剩余的票中解决
 //            }
 //        }
-//        return false; // 返回 false 购票失败 剩余的票中已经没有满足需求的分段票了
+//        else{
+//            return false; // 返回 false 购票失败 剩余的票中已经没有满足需求的分段票了
+//        }
 //    }
 
-
 //    @Override
+    public boolean buyRemanentTicket(Ticket newTicket){
+        //读出乘客的起始站和目的站
+        String startStation = newTicket.departStation;
+        String arriveStation = newTicket.destinationStation;
+        String trainNo = newTicket.trainNo;
+        Integer trainId = newTicket.trainId;
+        //在Ticket表中搜索相应段全部为0的票务信息
+        List<Ticket> targetTickets = searchRemanentTicket(startStation,arriveStation,trainId);
+        //搜索符合条件的剩余票
+        if(!targetTickets.isEmpty()){
+            String targetStations = targetTickets.get(0).stations;
+            //新建String stations
+            String newStations = modifyStations(startStation,arriveStation,trainNo);
+            if (newStations.equals(targetStations)){ //若stations未发生改动(表示没有修改成功)
+                return false; // 则返回false 表示修改失败 购票失败 剩余的票中已经没有满足需求的分段票了
+            }
+            else{
+                //同时更新相同座位新票和已经购入票的stations字段
+                //更新newTicket
+                String seat = targetTickets.get(0).seat ;
+
+                newTicket.stations = newStations;
+                String ticketJsonNew = orderService.updateTicketStatus(newTicket);
+                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJsonNew);
+                List<Ticket> modifiedtargetTickets = orderService.getAllTicketsBySeatAndTrainIdFromredis(seat,trainId);//读出相同seat的Ticket
+                //分别更新相同Seat的Ticket
+                for( int i = 0 ; i < modifiedtargetTickets.size() ; i++ ){
+                    Ticket curTicket = modifiedtargetTickets.get(i);
+                    curTicket.stations = newStations;
+                    curTicket.seat = seat;
+                    //此处代码粘贴自Services.OrderService中的ticket转redis函数
+                    String ticketJsonCur = orderService.updateTicketStatus(curTicket);
+                    orderService.writeRedis(curTicket.id, curTicket.userId, curTicket.trainId, ticketJsonCur);
+                }
+                //当选购票后，票的stations字段全部变为"1" 说明已经凑出了一张全程票
+                if (newStations.equals(
+                        modifyStations(orderService.findOneByTrainNo(trainNo).stations.get(0),
+                                orderService.findOneByTrainNo(trainNo).stations.get(orderService.findOneByTrainNo(trainNo).stations.size()-1),
+                                trainNo))){
+                    //找到原来半程票对应的trainNo
+//                    Optional<Train> train = trainRepository.findOneByTrainNo(targetTickets.get(0).trainNo);
+//                    if(train.isPresent()){
+//                        train.get().seatsSold += 1; //trainNo对应的seatsSold + 1
+//                        trainRepository.save(train.get()); //更新Train表，改变剩余票数
+//                    }
+                    return true; //表示购票成功
+                }
+//
+//                //将这两张票在数据库中更新
+//                ticketRepository.save(newTicket);
+//                ticketRepository.save(targetTickets.get(0));
+                return true; //返回 true 购票成功 表示此次购票可以在剩余的票中解决
+            }
+        }
+        else{
+            return false; // 返回 false 购票失败 剩余的票中已经没有满足需求的分段票了
+        }
+    }
+
+
+    @Override
     public List<Ticket> searchRemanentTicket(String departStation,String destinationStation, Integer trainId){
         List<Ticket> targetTickets = new ArrayList<>();
         List<Ticket> tickets = orderService.findTicketFromTrainId(trainId); //  查找 Redis 数据库
@@ -274,7 +380,7 @@ public class TicketServiceImpl implements TicketService{
     private String modifyString(Integer departNum , Integer destinationNum,String stations) {
         //若输入站号出现错误
         if(departNum == -1 || destinationNum == -1 || stations.equals("")){
-            return "";//返回""
+            return stations;//返回""
         }
         //若选择的起始站比终点站还远 或 起始站与终点站相同
         if (departNum >= destinationNum) {
