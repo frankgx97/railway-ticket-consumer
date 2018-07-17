@@ -9,6 +9,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.hibernate.service.spi.InjectService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.annotation.JmsListener;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import cn.guoduhao.TicketSystemConsumer.Models.Ticket;
 import cn.guoduhao.TicketSystemConsumer.Models.Train;
+import cn.guoduhao.TicketSystemConsumer.Models.TrainStationMap;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,6 +39,9 @@ public class OrderService {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @Autowired
     private TicketService ticketService;
@@ -75,17 +82,17 @@ public class OrderService {
         }
     }
 
-    @JmsListener(destination = "orders")
-    public void receive(String message) {
-        //这里的返回值必须为void，否则需要Message存在replyto
-        //从ActiveMQ接收消息
-        this.logger.info("Received message: " + message);
-        ObjectMapper mapper = new ObjectMapper();
-        try{
-            Ticket ticket = mapper.readValue(message, Ticket.class);
-            if (updateTrainDb(ticket.trainId) == 0){
-                String ticketId = ticket.id;
-
+//    @JmsListener(destination = "orders")
+//    public void receive(String message) {
+//        //这里的返回值必须为void，否则需要Message存在replyto
+//        //从ActiveMQ接收消息
+//        this.logger.info("Received message: " + message);
+//        ObjectMapper mapper = new ObjectMapper();
+//        try{
+//            Ticket ticket = mapper.readValue(message, Ticket.class);
+//            if (updateTrainDb(ticket.trainId) == 0){
+//                String ticketId = ticket.id;
+//
 //                //创建标准字段"0000000000"
 //                String receivedStations = ticketService.createStations_BJ_SH("北京","上海");
 //                String receivedDepartStation = ticket.departStation;
@@ -93,20 +100,20 @@ public class OrderService {
 //                //修改成购票状态相应的01串stations
 //                String modifiedStation = ticketService.modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
 //                ticket.stations = modifiedStation;
-                ticketService.buyTicket_BJ_SH(ticket);
-
-                //write redis
-                String ticketJson = this.updateTicketStatus(ticket);
-                this.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
-            }
-        }catch(JsonProcessingException jsonProcessingException) {
-            this.logger.error("jsonProcessingException");
-            this.logger.error(jsonProcessingException.getMessage());
-        }catch(IOException ioException) {
-            this.logger.error("IOException");
-            this.logger.error(ioException.getMessage());
-        }
-    }
+//                ticketService.buyTicket_BJ_SH(ticket);
+//
+//                //write redis
+//                String ticketJson = this.updateTicketStatus(ticket);
+//                this.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
+//            }
+//        }catch(JsonProcessingException jsonProcessingException) {
+//            this.logger.error("jsonProcessingException");
+//            this.logger.error(jsonProcessingException.getMessage());
+//        }catch(IOException ioException) {
+//            this.logger.error("IOException");
+//            this.logger.error(ioException.getMessage());
+//        }
+//    }
 
     public String updateTicketStatus(Ticket ticket){
         ObjectMapper mapper = new ObjectMapper();
@@ -184,5 +191,48 @@ public class OrderService {
         }
     }
     */
+
+    //车站信息的相关操作
+    //query使用Criteria.where("stations").is("北京")这种格式制定键值对，在上层函数中使用
+    //返回一个TrainStationMap对象
+    private TrainStationMap findOne(Query query, String collectionName){
+        return mongoTemplate.findOne(query,TrainStationMap.class,collectionName);
+    }
+
+    // 返回一个List<TrainStationMap>
+    private List<TrainStationMap> find(Query query,String collectionName){
+        return mongoTemplate.find(query,TrainStationMap.class,collectionName);
+    }
+
+    //输入上车站和下车站，返回trainNo
+    public List<TrainStationMap> findAllByDepartStaitonAndDestinationStation(String departStation,String destinationStation){
+        Query query = new Query();
+        query.addCriteria(
+                Criteria.where("stations").exists(true).andOperator(
+                        Criteria.where("stations").is(departStation),
+                        Criteria.where("stations").is(destinationStation)
+                )
+        );
+        //System.out.println("query - " + query.toString());
+        return this.find(query,"Stations"); //mongoDB中的Collation名称
+    }
+
+    //输入trainNo返回相应的车站信息对象
+    public TrainStationMap findOneByTrainNo(String trainNo){
+        Query query = new Query(Criteria.where("trainNo").is(trainNo));
+        return this.findOne(query,"Stations");
+    }
+
+    //输入站名和trainNo,返回此站名对应的index
+    public Integer stationNameToInteger(String stationName , String trainNo){
+        TrainStationMap stationInfo = this.findOneByTrainNo(trainNo);
+        if(stationInfo != null){
+            return stationInfo.stations.indexOf(stationName);
+        }
+        else{
+            return -1;
+        }
+    }
+
 }
 
