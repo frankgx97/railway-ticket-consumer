@@ -104,13 +104,14 @@ public class TicketServiceImpl implements TicketService{
                         return 2;
                     }
                 }else{
-                    this.logger.info("No seats left(before updating.)");
+                    this.logger.info("No seats left(before updating2.)");
                     return 2;
                 }
                 this.logger.info("Seat successfully updated.");
                 return 1;//返回成功
             }
             else{
+                this.logger.info("No seats left(before updating.1)");
                 return 2;//表示没有合适的票
             }
         }
