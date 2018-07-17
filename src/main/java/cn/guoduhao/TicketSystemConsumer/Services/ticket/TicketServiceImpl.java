@@ -8,6 +8,7 @@ import cn.guoduhao.TicketSystemConsumer.Repositories.TrainRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Service;
@@ -37,10 +38,11 @@ public class TicketServiceImpl implements TicketService{
 
     private Logger logger;
 
-    @Autowired //无需实例化，交给Spring管理
+    //@Autowired //无需实例化，交给Spring管理
     public TicketServiceImpl(TrainRepository ITrainRepository , OrderService IOrderService){
         this.trainRepository = ITrainRepository;
         this.orderService = IOrderService;
+        this.logger = LoggerFactory.getLogger(OrderService.class);
     }
 
     @Override //票价算法
@@ -90,13 +92,22 @@ public class TicketServiceImpl implements TicketService{
                 }
                 newTicket.stations = newStations;
                 if (train.get().seatsSold <= train.get().seatsTotal){
-                    train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
-                    trainRepository.save(train.get());//更新Train表
-                    String ticketJson = orderService.updateTicketStatus(newTicket);
-                    orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
+                    //train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
+                    //trainRepository.save(train.get());//更新Train表
+                    try{
+                        trainRepository.updateSoldSeats(train.get().id, train.get().seatsSold+1, train.get().version);
+                        String ticketJson = orderService.updateTicketStatus(newTicket);
+                        orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
+                    }catch(Exception e){
+                        this.logger.error(e.getMessage());
+                        this.logger.info("Seat update failed.");
+                        return 2;
+                    }
                 }else{
+                    this.logger.info("Seat update failed.");
                     return 2;
                 }
+                this.logger.info("Seat successfully updated.");
                 return 1;//返回成功
             }
             else{
@@ -200,10 +211,13 @@ public class TicketServiceImpl implements TicketService{
             patternStations = patternStations + "0";
         }
         patternStations = patternStations + "[01]{" + remanNum.toString() + "}";
-        System.out.println(patternStations);
+
+        this.logger.info(patternStations);
 
         //利用正则遍历车票
         for(int i = 0; i < tickets.size() ;i++){
+            this.logger.warn(Integer.toString(tickets.size()));
+            this.logger.warn(tickets.get(i).stations);
             boolean isMatch = Pattern.matches(patternStations,tickets.get(i).stations);
             if(isMatch){
                 targetTickets.add(tickets.get(i));
