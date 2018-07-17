@@ -13,7 +13,7 @@ public interface TicketService {
 //
     List<Ticket> searchRemanentTicket(String startStation, String arriveStation , Integer trainId);
 
-//    boolean buyRemanentTicket_BJ_SH(Ticket newTicket);
+    boolean buyRemanentTicket(Ticket newTicket);
 //
 //    Integer buyTicket_BJ_SH(Ticket newTicket);
 //
