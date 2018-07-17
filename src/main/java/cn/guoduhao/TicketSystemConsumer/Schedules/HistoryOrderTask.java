@@ -2,6 +2,8 @@ package cn.guoduhao.TicketSystemConsumer.Schedules;
 
 import cn.guoduhao.TicketSystemConsumer.Models.Ticket;
 import cn.guoduhao.TicketSystemConsumer.Repositories.MongoDbRepositories.TicketMongoRepository;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
@@ -31,13 +34,13 @@ public class HistoryOrderTask {
 
     @Scheduled(fixedRate = 3600000)
     public void migrateHistoryOrderToMongo(){
-        Set<String> keys = this.stringRedisTemplate.keys("*");
+        Set<String> keys = this.stringRedisTemplate.keys("*trainId*");
         List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
 
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         Long currentTimestamp = timestamp.getTime()/1000;
 
-        this.logger.debug(Integer.toString(jsonList.size()));
+        this.logger.info(Integer.toString(jsonList.size()));
 
         for(int i=0;i<jsonList.size();i++){
             try{
@@ -49,7 +52,7 @@ public class HistoryOrderTask {
                     ticketMongoRepository.save(ticket);
                     removeFromRedis(ticket.id);
                 }
-            }catch(Exception e){
+            }catch(IOException e){
                 this.logger.error(e.getMessage());
             }
         }
