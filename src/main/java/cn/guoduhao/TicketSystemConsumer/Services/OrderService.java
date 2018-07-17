@@ -252,5 +252,25 @@ public class OrderService {
         }
     }
 
+    public List<Ticket> getAllTicketsBySeatAndTrainIdFromredis(String seat, Integer trainId){
+        List<Ticket> ticketList = new ArrayList<>();
+
+        Set<String> keys = this.stringRedisTemplate.keys("*trainId" + Integer.toString(trainId));
+        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+
+        for(int i=0;i<jsonList.size();i++){
+            ObjectMapper mapper = new ObjectMapper();
+            try{
+                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
+                if(ticket.seat.equals(seat)){
+                    ticketList.add(ticket);
+                }
+            }catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+        }
+        return ticketList;
+    }
+
 }
 
