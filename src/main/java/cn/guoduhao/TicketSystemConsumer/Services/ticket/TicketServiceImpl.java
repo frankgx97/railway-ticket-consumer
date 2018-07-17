@@ -85,7 +85,7 @@ public class TicketServiceImpl implements TicketService{
                 //创建新的stations字段
                 String defaultStation = createStations(train.get().trainNo);
                 String newStations = modifyStations(startStation,arriveStation,train.get().trainNo);
-                if(newStations.equals(defaultStation)){ //当stations等类似于"000000000"时(出现特殊情况)
+                if(newStations.equals(defaultStation)){ //当stations等类似于"000000000"时或未发生修改(出现特殊情况)
                     return 2;//返回2
                 }
                 train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
