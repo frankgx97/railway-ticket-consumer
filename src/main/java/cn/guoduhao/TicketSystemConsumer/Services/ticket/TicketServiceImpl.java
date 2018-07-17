@@ -88,11 +88,15 @@ public class TicketServiceImpl implements TicketService{
                 if(newStations.equals(defaultStation)){ //当stations等类似于"000000000"时或未发生修改(出现特殊情况)
                     return 2;//返回2
                 }
-                train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
                 newTicket.stations = newStations;
-                String ticketJson = orderService.updateTicketStatus(newTicket);
-                trainRepository.save(train.get());//更新Train表
-                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
+                if (train.get().seatsSold <= train.get().seatsTotal){
+                    train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
+                    trainRepository.save(train.get());//更新Train表
+                    String ticketJson = orderService.updateTicketStatus(newTicket);
+                    orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
+                }else{
+                    return 2;
+                }
                 return 1;//返回成功
             }
             else{

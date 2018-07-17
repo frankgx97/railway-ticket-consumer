@@ -53,19 +53,18 @@ public class OrderService {
     }
 
     public Integer updateTrainDb(Integer id){
+        //这里只判断余票，不更新库存
         Optional<Train> train = trainRepository.findOneById(id);
-        //TODO 加锁
         Integer seatsTotal = train.get().seatsTotal;
         Integer seatsSold = train.get().seatsSold;
         if(seatsSold < seatsTotal){
-            this.logger.info("Updating train.");
-            //TODO 判断抢票是否成功
+            this.logger.info("Have tickets left.");
             //train.get().seatsSold = seatsSold + 1;
             //trainRepository.save(train.get());
             //this.logger.info("Train update success.");
             return 0;
         }else{
-            this.logger.info("Train update failed.");
+            this.logger.info("No tickets left");
             return -1;
         }
     }
@@ -91,7 +90,7 @@ public class OrderService {
         ObjectMapper mapper = new ObjectMapper();
         try{
             Ticket ticket = mapper.readValue(message, Ticket.class);
-            if (updateTrainDb(ticket.trainId) == 0){
+            if (updateTrainDb(ticket.trainId) == 0){//这里只判断余票，不更新库存
                 String ticketId = ticket.id;
 
                 //创建标准字段"0000000000"
