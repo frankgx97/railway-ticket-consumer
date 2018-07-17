@@ -71,6 +71,7 @@ public class OrderService {
     }
 
     public void writeRedis(String ticketId, String userId, Integer trainId,String json){
+        //通过trainid查找改为通过trainno
         if (json.equals("")){
             this.logger.error("GOT_NULL_MESSAGE.");
         }
@@ -144,39 +145,39 @@ public class OrderService {
         return ticketList;
     }
 
-    public List<Ticket> findTicketFromTrainNo(String TrainNo){
-        Set<String> keys = this.stringRedisTemplate.keys("*trainNo"+TrainNo);
-        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+//    public List<Ticket> findTicketFromTrainNo(String TrainNo){
+//        Set<String> keys = this.stringRedisTemplate.keys("*trainNo"+TrainNo);
+//        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+//
+//        List<Ticket> ticketList = new ArrayList<>();
+//        for(int i=0;i<jsonList.size();i++){
+//            ObjectMapper mapper = new ObjectMapper();
+//            try{
+//                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
+//                ticketList.add(ticket);
+//            }catch(Exception e){
+//                System.out.println(e.getMessage());
+//            }
+//        }
+//        return ticketList;
+//    }
 
-        List<Ticket> ticketList = new ArrayList<>();
-        for(int i=0;i<jsonList.size();i++){
-            ObjectMapper mapper = new ObjectMapper();
-            try{
-                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
-                ticketList.add(ticket);
-            }catch(Exception e){
-                System.out.println(e.getMessage());
-            }
-        }
-        return ticketList;
-    }
-
-    public List<Ticket> findTicketFromSeat(String seat){
-        Set<String> keys = this.stringRedisTemplate.keys("*seat"+seat);
-        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
-
-        List<Ticket> ticketList = new ArrayList<>();
-        for(int i=0;i<jsonList.size();i++){
-            ObjectMapper mapper = new ObjectMapper();
-            try{
-                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
-                ticketList.add(ticket);
-            }catch(Exception e){
-                System.out.println(e.getMessage());
-            }
-        }
-        return ticketList;
-    }
+//    public List<Ticket> findTicketFromSeat(String seat){
+//        Set<String> keys = this.stringRedisTemplate.keys("*seat"+seat);
+//        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
+//
+//        List<Ticket> ticketList = new ArrayList<>();
+//        for(int i=0;i<jsonList.size();i++){
+//            ObjectMapper mapper = new ObjectMapper();
+//            try{
+//                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
+//                ticketList.add(ticket);
+//            }catch(Exception e){
+//                System.out.println(e.getMessage());
+//            }
+//        }
+//        return ticketList;
+//    }
 
     /*
     private class RedisKey{
@@ -223,9 +224,26 @@ public class OrderService {
         return this.findOne(query,"Stations");
     }
 
+    //输入trainId返回相应的车站信息对象
+    public TrainStationMap findOneByTrainId(Integer trainId){
+        Query query = new Query(Criteria.where("trainId").is(trainId));
+        return this.findOne(query,"Stations");
+    }
+
     //输入站名和trainNo,返回此站名对应的index
     public Integer stationNameToInteger(String stationName , String trainNo){
         TrainStationMap stationInfo = this.findOneByTrainNo(trainNo);
+        if(stationInfo != null){
+            return stationInfo.stations.indexOf(stationName);
+        }
+        else{
+            return -1;
+        }
+    }
+
+    //输入站名和trainId,返回此站名对应的index
+    public Integer stationNameToInteger(String stationName , Integer trainId){
+        TrainStationMap stationInfo = this.findOneByTrainId(trainId);
         if(stationInfo != null){
             return stationInfo.stations.indexOf(stationName);
         }

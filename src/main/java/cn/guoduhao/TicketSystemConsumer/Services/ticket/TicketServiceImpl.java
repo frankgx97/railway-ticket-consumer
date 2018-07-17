@@ -189,39 +189,50 @@ public class TicketServiceImpl implements TicketService{
 //        }
 //        return false; // 返回 false 购票失败 剩余的票中已经没有满足需求的分段票了
 //    }
-//
-//    //ToDo 添加北京至上海的分段查找功能 如果铁路线路过多需要使用数据库存储。具体实现逻辑在石墨文档
+
+
 //    @Override
-//    public List<Ticket> searchRemanentTicket_BJ_SH(String startStation, String arriveStation){
-//        List<Ticket> targetTickets = new ArrayList<>();
-//        String trainNo = mapToTrainNo_BJ_SH(startStation,arriveStation);
-//        //ToDo 此处推广时需要修改
-//        List<Ticket> tickets = orderService.findTicketFromTrainNo(trainNo);
-//        //ToDo 此处推广时需要修改
-//        Integer totalStations = StringToStationNum_BJ_SH("上海"); //总站数
-//        Integer startNum = StringToStationNum_BJ_SH(startStation); // 乘客上车站
-//        Integer arriveNum = StringToStationNum_BJ_SH(arriveStation); //乘客下车站
-//        Integer remanNum = totalStations - arriveNum; //距离终点站的站数(用于组合正则)
-//
-//        //使用String组合出对应的正则表达式
-//        String patternStations = "";
-//        patternStations = "[01]{" + startNum.toString() + "}";
-//        for(int i = startNum; i < arriveNum ; i++){
-//            patternStations = patternStations + "0";
-//        }
-//        patternStations = patternStations + "[01]{" + remanNum.toString() + "}";
-//        //System.out.println(patternStations);
-//
-//        //利用正则遍历车票
-//        for(int i = 0; i < tickets.size() ;i++){
-//            boolean isMatch = Pattern.matches(patternStations,tickets.get(i).stations);
-//            if(isMatch){
-//                targetTickets.add(tickets.get(i));
-//            }
-//        }
-//        //返回符合情况的List
-//        return targetTickets;
-//    }
+    public List<Ticket> searchRemanentTicket(String departStation,String destinationStation, Integer trainId){
+        List<Ticket> targetTickets = new ArrayList<>();
+        List<Ticket> tickets = orderService.findTicketFromTrainId(trainId); //  查找 Redis 数据库
+        //System.out.println(tickets.size());
+
+        String trainNo;
+        if(trainRepository.findOneById(trainId).isPresent()){
+            trainNo = trainRepository.findOneById(trainId).get().trainNo;
+        }
+        else{
+            trainNo = "";
+        }
+
+        System.out.println(trainNo);
+        //------------------//
+
+        //ToDo 此处推广时需要修改
+        Integer totalStations = orderService.findOneByTrainNo(trainNo).stations.size() - 1; //总站间隔数
+        Integer startNum = orderService.stationNameToInteger(departStation,trainNo); // 乘客上车站
+        Integer arriveNum = orderService.stationNameToInteger(destinationStation,trainNo); //乘客下车站
+        Integer remanNum = totalStations - arriveNum; //距离终点站的站数(用于组合正则)
+
+        //使用String组合出对应的正则表达式
+        String patternStations = "";
+        patternStations = "[01]{" + startNum.toString() + "}";
+        for(int i = startNum; i < arriveNum ; i++){
+            patternStations = patternStations + "0";
+        }
+        patternStations = patternStations + "[01]{" + remanNum.toString() + "}";
+        System.out.println(patternStations);
+
+        //利用正则遍历车票
+        for(int i = 0; i < tickets.size() ;i++){
+            boolean isMatch = Pattern.matches(patternStations,tickets.get(i).stations);
+            if(isMatch){
+                targetTickets.add(tickets.get(i));
+            }
+        }
+        //返回符合情况的List
+        return targetTickets;
+    }
 
     @Override
     //若能够映射到BJ_SH的列车 则返回"G1";否则返回""
