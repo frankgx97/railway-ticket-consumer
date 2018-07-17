@@ -57,7 +57,7 @@ public class OrderService {
         //TODO 加锁
         Integer seatsTotal = train.get().seatsTotal;
         Integer seatsSold = train.get().seatsSold;
-        if(seatsSold <= seatsTotal){
+        if(seatsSold < seatsTotal){
             this.logger.info("Updating train.");
             //TODO 判断抢票是否成功
             //train.get().seatsSold = seatsSold + 1;
@@ -83,38 +83,38 @@ public class OrderService {
         }
     }
 
-//    @JmsListener(destination = "orders")
-//    public void receive(String message) {
-//        //这里的返回值必须为void，否则需要Message存在replyto
-//        //从ActiveMQ接收消息
-//        this.logger.info("Received message: " + message);
-//        ObjectMapper mapper = new ObjectMapper();
-//        try{
-//            Ticket ticket = mapper.readValue(message, Ticket.class);
-//            if (updateTrainDb(ticket.trainId) == 0){
-//                String ticketId = ticket.id;
-//
-//                //创建标准字段"0000000000"
-//                String receivedStations = ticketService.createStations_BJ_SH("北京","上海");
-//                String receivedDepartStation = ticket.departStation;
-//                String receivedDestinationStation = ticket.destinationStation;
-//                //修改成购票状态相应的01串stations
-//                String modifiedStation = ticketService.modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
-//                ticket.stations = modifiedStation;
-//                ticketService.buyTicket_BJ_SH(ticket);
-//
-//                //write redis
+    @JmsListener(destination = "orders")
+    public void receive(String message) {
+        //这里的返回值必须为void，否则需要Message存在replyto
+        //从ActiveMQ接收消息
+        this.logger.info("Received message: " + message);
+        ObjectMapper mapper = new ObjectMapper();
+        try{
+            Ticket ticket = mapper.readValue(message, Ticket.class);
+            if (updateTrainDb(ticket.trainId) == 0){
+                String ticketId = ticket.id;
+
+                //创建标准字段"0000000000"
+                String trainNo = ticket.trainNo;
+                String receivedDepartStation = ticket.departStation;
+                String receivedDestinationStation = ticket.destinationStation;
+                //修改成购票状态相应的01串stations
+                ticket.stations = ticketService.modifyStations(receivedDepartStation,
+                        receivedDestinationStation,trainNo);
+                ticketService.buyTicket(ticket);
+
+                //write redis
 //                String ticketJson = this.updateTicketStatus(ticket);
 //                this.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
-//            }
-//        }catch(JsonProcessingException jsonProcessingException) {
-//            this.logger.error("jsonProcessingException");
-//            this.logger.error(jsonProcessingException.getMessage());
-//        }catch(IOException ioException) {
-//            this.logger.error("IOException");
-//            this.logger.error(ioException.getMessage());
-//        }
-//    }
+            }
+        }catch(JsonProcessingException jsonProcessingException) {
+            this.logger.error("jsonProcessingException");
+            this.logger.error(jsonProcessingException.getMessage());
+        }catch(IOException ioException) {
+            this.logger.error("IOException");
+            this.logger.error(ioException.getMessage());
+        }
+    }
 
     public String updateTicketStatus(Ticket ticket){
         ObjectMapper mapper = new ObjectMapper();
@@ -145,53 +145,6 @@ public class OrderService {
         return ticketList;
     }
 
-//    public List<Ticket> findTicketFromTrainNo(String TrainNo){
-//        Set<String> keys = this.stringRedisTemplate.keys("*trainNo"+TrainNo);
-//        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
-//
-//        List<Ticket> ticketList = new ArrayList<>();
-//        for(int i=0;i<jsonList.size();i++){
-//            ObjectMapper mapper = new ObjectMapper();
-//            try{
-//                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
-//                ticketList.add(ticket);
-//            }catch(Exception e){
-//                System.out.println(e.getMessage());
-//            }
-//        }
-//        return ticketList;
-//    }
-
-//    public List<Ticket> findTicketFromSeat(String seat){
-//        Set<String> keys = this.stringRedisTemplate.keys("*seat"+seat);
-//        List<String> jsonList = this.stringRedisTemplate.opsForValue().multiGet(keys);
-//
-//        List<Ticket> ticketList = new ArrayList<>();
-//        for(int i=0;i<jsonList.size();i++){
-//            ObjectMapper mapper = new ObjectMapper();
-//            try{
-//                Ticket ticket = mapper.readValue(jsonList.get(i), Ticket.class);
-//                ticketList.add(ticket);
-//            }catch(Exception e){
-//                System.out.println(e.getMessage());
-//            }
-//        }
-//        return ticketList;
-//    }
-
-    /*
-    private class RedisKey{
-        String userId;
-        String ticketId;
-        Integer trainId;
-
-        public RedisKey(String userId, String ticketId, Integer trainId){
-            this.userId = userId;
-            this.ticketId = ticketId;
-            this.trainId = trainId;
-        }
-    }
-    */
 
     //车站信息的相关操作
     //query使用Criteria.where("stations").is("北京")这种格式制定键值对，在上层函数中使用

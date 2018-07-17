@@ -30,7 +30,6 @@ import static java.lang.Math.abs;
 public class TicketServiceImpl implements TicketService{
 
     //导入ticketRepository
-    private final TicketRepository ticketRepository;
 
     private final TrainRepository trainRepository;
 
@@ -39,16 +38,10 @@ public class TicketServiceImpl implements TicketService{
     private Logger logger;
 
     @Autowired //无需实例化，交给Spring管理
-    public TicketServiceImpl(TicketRepository ITicketRepository, TrainRepository ITrainRepository , OrderService IOrderService){
-        this.ticketRepository = ITicketRepository;
+    public TicketServiceImpl(TrainRepository ITrainRepository , OrderService IOrderService){
         this.trainRepository = ITrainRepository;
         this.orderService = IOrderService;
     }
-
-//    @Override
-//    public Optional<Ticket> getTicketByUserId(String userId){
-//        return this.ticketRepository.findOneByUserId(userId);
-//    }
 
     @Override //票价算法
     public float countFee(String departStation,String destinationStation,String trainNo){
@@ -74,71 +67,39 @@ public class TicketServiceImpl implements TicketService{
             }
         }
     }
-//    @JmsListener(destination = "orders")
-//    public void receiveAndModifyStations(String message) {
-//        //这里的返回值必须为void，否则需要Message存在replyto
-//        //从ActiveMQ接收消息
-//        this.logger.info("Received message: " + message);
-//        ObjectMapper mapper = new ObjectMapper();
-//        try{
-//            Ticket ticket = mapper.readValue(message, Ticket.class);
-//            if (orderService.updateTrainDb(ticket.trainId) == 0){
-//                String ticketId = ticket.id;
-//
-//                //Coding by TianXinyao at July/12th/2018
-//
-//                String receivedStations = createStations_BJ_SH("北京","上海");
-//                String receivedDepartStation = ticket.departStation;
-//                String receivedDestinationStation = ticket.destinationStation;
-//                String modifiedStation = modifyStations(receivedDepartStation,receivedDestinationStation,receivedStations);
-//                ticket.stations = modifiedStation;
-//
-//                //End Coding...
-//
-//                //write redis
-//                String ticketJson = orderService.updateTicketStatus(ticket);
-//                orderService.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
-//            }
-//        }catch(JsonProcessingException jsonProcessingException) {
-//            this.logger.error("jsonProcessingException");
-//            this.logger.error(jsonProcessingException.getMessage());
-//        }catch(IOException ioException) {
-//            this.logger.error("IOException");
-//            this.logger.error(ioException.getMessage());
-//        }
-//    }
 
-//    @Override
-//    public Integer buyTicket_BJ_SH(Ticket newTicket){
-//        //在剩余的半程票中是否已经成功购票
-//        boolean isSuccess = buyRemanentTicket(newTicket);
-//        if(isSuccess){
-//            return 1;//若已成功购票 则返回1
-//        }
-//        else{//否则，从全程票中查看是否有空闲票
-//            //ToDo 需要更改 进入NoSQL中查询含有顾客上车和下车站的trainNo, 再根据TrainNo检索
-//            List<Train> trains = //注意这里是 trainRepo 不是 ticketRepo
-//                trainRepository.findByDepartStationAndDestinationStationAndDepartTime("北京","上海",newTicket.departTime);
-//            Integer remanentTickets = trains.get(0).seatsTotal - trains.get(0).seatsSold;
-//            if(remanentTickets > 0){//若全程票中有空闲票
-//                String startStation = newTicket.departStation;
-//                String arriveStation = newTicket.destinationStation;
-//                //创建新的stations字段
-//                String defaultStation = createStations(0,"上海");
-//                String newStations = modifyStations(startStation,arriveStation,defaultStation);
-//                trains.get(0).seatsSold += 1;//全程票售出一张(全程半程均可)
-//                newTicket.stations = newStations;
-//                //ticketRepository.save(newTicket);//更新新买的票至Ticket表
-//                String ticketJson = orderService.updateTicketStatus(newTicket);
-//                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
-//                trainRepository.save(trains.get(0));//更新Train表
-//                return 1;//返回成功
-//            }
-//            else{
-//                return 2;//表示没有合适的票
-//            }
-//        }
-//    }
+    @Override
+    public Integer buyTicket(Ticket newTicket){
+        //在剩余的半程票中是否已经成功购票
+        boolean isSuccess = buyRemanentTicket(newTicket);
+        if(isSuccess){
+            return 1;//若已成功购票 则返回1
+        }
+        else{//否则，从全程票中查看是否有空闲票
+            Optional<Train> train = //注意这里是 trainRepo 不是 ticketRepo
+                trainRepository.findOneById(newTicket.trainId);
+            Integer remanentTicketsNum = train.get().seatsTotal - train.get().seatsSold;
+            if(remanentTicketsNum > 0){//若全程票中有空闲票
+                String startStation = newTicket.departStation;
+                String arriveStation = newTicket.destinationStation;
+                //创建新的stations字段
+                String defaultStation = createStations(train.get().trainNo);
+                String newStations = modifyStations(startStation,arriveStation,train.get().trainNo);
+                if(newStations.equals(defaultStation)){ //当stations等类似于"000000000"时(出现特殊情况)
+                    return 2;//返回2
+                }
+                train.get().seatsSold += 1;//全程票售出一张(全程半程均可)
+                newTicket.stations = newStations;
+                String ticketJson = orderService.updateTicketStatus(newTicket);
+                trainRepository.save(train.get());//更新Train表
+                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJson);
+                return 1;//返回成功
+            }
+            else{
+                return 2;//表示没有合适的票
+            }
+        }
+    }
 
 
 //    @Override
@@ -160,22 +121,25 @@ public class TicketServiceImpl implements TicketService{
             }
             else{
                 //同时更新相同座位新票和已经购入票的stations字段
-                //更新newTicket
+
                 String seat = targetTickets.get(0).seat ;
 
-                newTicket.stations = newStations;
-                String ticketJsonNew = orderService.updateTicketStatus(newTicket);
-                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJsonNew);
                 List<Ticket> modifiedtargetTickets = orderService.getAllTicketsBySeatAndTrainIdFromredis(seat,trainId);//读出相同seat的Ticket
                 //分别更新相同Seat的Ticket
                 for( int i = 0 ; i < modifiedtargetTickets.size() ; i++ ){
                     Ticket curTicket = modifiedtargetTickets.get(i);
                     curTicket.stations = newStations;
-                    curTicket.seat = seat;
                     //此处代码粘贴自Services.OrderService中的ticket转redis函数
                     String ticketJsonCur = orderService.updateTicketStatus(curTicket);
                     orderService.writeRedis(curTicket.id, curTicket.userId, curTicket.trainId, ticketJsonCur);
                 }
+
+                //更新newTicket
+                newTicket.stations = newStations;
+                newTicket.seat = seat;
+                String ticketJsonNew = orderService.updateTicketStatus(newTicket);
+                orderService.writeRedis(newTicket.id, newTicket.userId, newTicket.trainId, ticketJsonNew);
+
                 //当选购票后，票的stations字段全部变为"1" 说明已经凑出了一张全程票
                 if (newStations.equals(
                         modifyStations(orderService.findOneByTrainNo(trainNo).stations.get(0),
@@ -272,6 +236,7 @@ public class TicketServiceImpl implements TicketService{
         return modifyStations(ticket.departStation,ticket.destinationStation,ticket.trainNo);
     }
 
+    @Override
     public String modifyStations(String departStation,String destinationStation,String trainNo){
         Integer departNum = orderService.stationNameToInteger(departStation,trainNo);
         Integer destinationNum= orderService.stationNameToInteger(destinationStation,trainNo);
@@ -314,6 +279,7 @@ public class TicketServiceImpl implements TicketService{
 
 
     //生成具有相应位数的stations 此函数用于兼容多线路购票
+    @Override
     public String createStations(String trainNo){
         TrainStationMap stationInfo = orderService.findOneByTrainNo(trainNo);
         if (stationInfo == null){

@@ -15,11 +15,11 @@ public interface TicketService {
 
     boolean buyRemanentTicket(Ticket newTicket);
 //
-//    Integer buyTicket_BJ_SH(Ticket newTicket);
+    Integer buyTicket(Ticket newTicket);
 //
-//    String modifyStations(String departStation,String destinationStation,String stations);
+    String modifyStations(String departStation,String destinationStation,String trainNo);
 //
-//    String createStations_BJ_SH(String departStation,String destinationaStation);
+    String createStations(String trainNo);
 //
 //    //void receiveAndModifyStations(String message);
 
