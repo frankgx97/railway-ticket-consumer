@@ -104,6 +104,7 @@ public class OrderService {
                 ticketService.buyTicket(ticket);
 
                 //write redis
+                //在函数中已经updateRedis了
 //                String ticketJson = this.updateTicketStatus(ticket);
 //                this.writeRedis(ticketId, ticket.userId, ticket.trainId, ticketJson);
             }
