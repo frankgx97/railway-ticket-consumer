@@ -93,10 +93,15 @@ public class OrderService {
             if (updateTrainDb(ticket.trainId) == 0){//这里只判断余票，不更新库存
                 String ticketId = ticket.id;
 
-                //创建标准字段"0000000000"
+                //隔离北京 - 北京的情况
                 String trainNo = ticket.trainNo;
                 String receivedDepartStation = ticket.departStation;
                 String receivedDestinationStation = ticket.destinationStation;
+
+                if(this.stationNameToInteger(receivedDepartStation,trainNo) == this.stationNameToInteger(receivedDestinationStation,trainNo)){
+                    return ;
+                }
+
                 //修改成购票状态相应的01串stations
                 ticket.stations = ticketService.modifyStations(receivedDepartStation,
                         receivedDestinationStation,trainNo);
