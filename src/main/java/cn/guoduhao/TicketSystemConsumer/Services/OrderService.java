@@ -98,7 +98,7 @@ public class OrderService {
                 String receivedDepartStation = ticket.departStation;
                 String receivedDestinationStation = ticket.destinationStation;
 
-                if(this.stationNameToInteger(receivedDepartStation,trainNo) == this.stationNameToInteger(receivedDestinationStation,trainNo)){
+                if(this.stationNameToInteger(receivedDepartStation,trainNo).equals(this.stationNameToInteger(receivedDestinationStation,trainNo))){
                     return ;
                 }
 
